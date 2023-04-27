@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "Nadia Eisa (nwe4n)"
+author: "Sarah Raza (sr6bf)"
 date: "12/8/2021"
 output: html_document
 ---
