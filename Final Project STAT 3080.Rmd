@@ -1,0 +1,220 @@
+---
+title: "Final Project STAT 3080" 
+author: Sarah Raza, Nicole DeFrancesco, Nicole Garibaldi
+date: 06/18/2022
+fontsize: 12pt
+geometry: margin=1in
+urlcolor: black
+output: pdf_document
+header-includes:
+- \usepackage{setspace}
+- \onehalfspacing
+---
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+
+degree=read.csv("/Users/sarahraza/Downloads/degrees-that-pay-back.csv")
+school.type=read.csv("/Users/sarahraza/Downloads/salaries-by-college-type.csv")
+school.region=read.csv("/Users/sarahraza/Downloads/salaries-by-region.csv")
+
+major_category=c("Business","Engineering","Sciences","Social Sciences","Art","Art","Sciences","Business","Engineering","Sciences","Engineering","Business","Engineering","Sciences","Engineering","Social Sciences", "Art","Business","Social Sciences","Engineering","Social Sciences","Social Sciences","Business","Sciences","Social Sciences","Sciences","Art","Sciences","Social Sciences","Business","Engineering","Business","Art","Social Sciences","Social Sciences","Business","Business","Sciences","Engineering","Art","Sciences","Sciences","Social Sciences","Sciences","Sciences","Social Sciences","Social Sciences","Social Sciences","Social Sciences","Social Sciences")
+degree$major_category=major_category
+
+#rename columns for degree data
+degree=degree%>%rename(major=Undergraduate.Major,start.median=Starting.Median.Salary,mid_p50=Mid.Career.Median.Salary,percent.change.bgn.mid=Percent.change.from.Starting.to.Mid.Career.Salary,mid_p10=Mid.Career.10th.Percentile.Salary,
+mid_p25=Mid.Career.25th.Percentile.Salary,mid_p75=Mid.Career.75th.Percentile.Salary,mid_p90=Mid.Career.90th.Percentile.Salary)
+
+#remove problems that can't make data a numeric column for degree data
+degree.data=degree%>%mutate(across(starts_with("mid"),~gsub("\\$", "", .)))
+degree.data=degree.data%>%mutate(across(starts_with("start"),~gsub("\\$", "", .)))
+degree.data=degree.data%>%mutate(across(starts_with("start"),~gsub("\\.00", "", .)))
+degree.data=degree.data%>%mutate(across(starts_with("mid"),~gsub("\\.00", "", .)))
+degree.data=degree.data%>%mutate(across(starts_with("mid"),~gsub("\\,", "", .)))
+degree.data=degree.data%>%mutate(across(starts_with("start"),~gsub("\\,", "", .)))
+
+#convert to numeric column
+degree1=degree.data%>%mutate(start_median=as.numeric(start.median))
+
+#rename columns for school type data
+school.type=school.type%>%rename(type=School.Type,start.median=Starting.Median.Salary,mid_p50=Mid.Career.Median.Salary,mid_p10=Mid.Career.10th.Percentile.Salary,mid_p25=Mid.Career.25th.Percentile.Salary,mid_p75=Mid.Career.75th.Percentile.Salary,mid_p90=Mid.Career.90th.Percentile.Salary)
+
+#remove problems that can't make data a numeric column for degree data
+type.data=school.type%>%mutate(across(starts_with("mid"),~gsub("\\$", "", .)))
+type.data=type.data%>%mutate(across(starts_with("start"),~gsub("\\$", "", .)))
+type.data=type.data%>%mutate(across(starts_with("start"),~gsub("\\.00", "", .)))
+type.data=type.data%>%mutate(across(starts_with("mid"),~gsub("\\.00", "", .)))
+type.data=type.data%>%mutate(across(starts_with("mid"),~gsub("\\,", "", .)))
+type.data=type.data%>%mutate(across(starts_with("start"),~gsub("\\,", "", .)))
+
+#convert to numeric column
+type.data1=type.data%>%mutate(m50=as.numeric(mid_p50))
+
+#rename columns for school region data
+school.region=school.region%>%rename(region=Region,start.median=Starting.Median.Salary,mid_p50=Mid.Career.Median.Salary,mid_p10=Mid.Career.10th.Percentile.Salary, mid_p25=Mid.Career.25th.Percentile.Salary,mid_p75=Mid.Career.75th.Percentile.Salary,mid_p90=Mid.Career.90th.Percentile.Salary)
+
+#remove problems that can't make data a numeric column for degree data
+region.data=school.region%>%mutate(across(starts_with("mid"),~gsub("\\$", "", .)))
+region.data=region.data%>%mutate(across(starts_with("start"),~gsub("\\$", "", .)))
+region.data=region.data%>%mutate(across(starts_with("start"),~gsub("\\.00", "", .)))
+region.data=region.data%>%mutate(across(starts_with("mid"),~gsub("\\.00", "", .)))
+region.data=region.data%>%mutate(across(starts_with("mid"),~gsub("\\,", "", .)))
+region.data=region.data%>%mutate(across(starts_with("start"),~gsub("\\,", "", .)))
+
+#convert to numeric column
+region.data1=region.data%>%mutate(start_median=as.numeric(start.median))
+```
+
+## Part 1: Topic of Interest
+
+### Population of Interest and Main Research Questions
+
+  For our analysis, we were mainly interested in the salaries of those who recently graduated from specifically U.S colleges. It has become increasingly apparent that U.S college tuition fees are outpacing inflation [1], so the starting salary of those who have recently graduated is becoming even more important to take into consideration. Our goal is to explore the relationship between the median starting salaries for U.S college undergraduates and various other contributing factors such as their major, school type, and regions. Our three main research questions are as follows:
+
+1. Which of the five major categories produces the greatest starting median salary?
+2. Does the school type affect starting median salary as well as different percentile salaries?
+3. Which college regions have the highest starting median salary?
+
+### Appropriate Data
+
+  The three datasets we used from the Wall Street Journal [2] contain quite a few common variables, such as the career percentiles of salary and starting median salary. Across all the datasets, we manipulated the column names and shortened them in order to make working with them easier. Additionally, commas, decimals, and dollar signs were removed from rows containing salary information in order to successfully convert the character variables into numeric variables without NA coercion.
+  
+  For the degree dataset, all the majors are listed under the Undergraduate Major column. Since there are many different types of majors, for the purpose of our analysis, we have opted to group these majors into five major categories: Engineering, Sciences, Arts, Business, and Social Sciences. 
+Majors that go underneath the Engineering category include Aerospace, Chemical, Civil, Electric, Computer, Industrial, Mechanical, and Construction. Majors that go under the Science category include Agriculture, Biology, Chemistry, Computer Science, Math, Forestry, Geology, Health Care, Nursing, Nutrition, Physicians Assistant, and Physics. Majors that go underneath the Social Sciences category include Anthropology, Criminal Justice, Education, English, Film, Geography, History, International Relations, Journalism, Philosophy, Political Science, Psychology, Religion, Sociology, and Spanish. Majors that go underneath the Art category include Architecture, Art History, Drama, Graphic Design, Interior Design, and Music. Majors that go underneath Business include Accounting, Business Management, Communications, Information Technology, Management Information Systems, Economics, Finance, Marketing, and Hospitality. Although the category placement for some majors can be debatable, we did not create additional categories in order to keep the number of majors in each category fairly equal.
+
+  The college type dataset includes a school type variable list of 269 colleges across the country. They are classified into the following categories: Engineering, Party, Liberal Arts, Ivy League, and State. Engineering schools are those that grant more than 50 percent of their undergraduate degrees in the STEM field. Ivy league refers to the eight Ivy League schools in the country. Liberal Arts refers to schools with an emphasis on humanities. State refers to schools that are publicly funded.
+  The salaries by region dataset includes a region variable that consists of a total of 320 schools 320 schools in the country. They are classified into the following categories: California, Western, Midwestern, Southern, and Northeastern. Some of the schools included were not listed in the college type dataset, but despite the discrepancy, that will not impact our analysis.
+
+
+## Part 2: Data Summaries
+
+### Research Question
+
+  After Analyzing our data, we have decided to focus solely on the five major categories that we sorted, which are Engineering, Science, Social Science, Art, and Business, and which one produces the greatest starting median salary based on our dataset. Research Question: Which of the five major categories produces the greatest starting median salary? We chose this as our research question because we would expect that certain categories like Engineering and Business to have a higher starting median salary due to the rigorous nature of these majors and the stigma around the jobs that these majors lead to. Thus, we wanted to see if the major category affects the starting median salary and which category has the highest starting salary.
+
+### Data Explanation
+
+  The data we are looking at is a collection of data from an article in Wall Street Journal. The Wall Street journal used a third party company called PayScale Inc., an American compensation software and data company that helps employers manage and keep track of employee compensation data, to collect their data. The first dataset we looked at 50 majors and the salaries of said majors; this is the dataset we chose to focus on the most. The second dataset looked at salaries by type of college in the United States and classified them in 5 categories including Engineering, Party, State, Liberal Arts, and Ivy League. The third dataset looked at salaries based on universities and the region they are in. The regions included California, Western, Midwestern, Southern, and Northeastern. 
+  
+### Data Classification
+
+  The data we used is a sample and is clearly stated as such in the description of the data. 
+
+### Data Collection
+
+  The data sets focus on the starting median salary of college graduates according to their majors, college type, and region of the college they attended. The data was collected by PayScale Inc., which is an American compensation software and data company. It helps employers manage and keep track of employee compensation data. The Wall Street Journal and PayScale Inc. do not disclose their exact methods of collection, but PayScale Inc. claims that they “collect and report all [their] own salary data. [Their] compensation data comes from comprehensive salary surveys that span a wide range of industries and geographic locations. Information is voluntarily self-reported by employees. [Their] data is clean and unbiased.”[3]
+  
+### Data Contents
+
+  The data we are looking at is a collection of data that has been split into three different datasets. We were highly interested in the dataframe of majors vs. salary statistics. It is a sample of a wide variety of majors in different studies with 50 specific majors. It looked specifically at Starting Median Salary, Mid Career Median Salary, Percent change from Starting to Mid-Career Salary, Mid Career 10th Percentile Salary, Mid Career 25th Percentile Salary, Mid Career 75th Percentile Salary, and Mid Career 90th Percentile Salary for each major. As stated above, we decided to sort the majors into 5 categories in order to look more broadly at the categories. The data set containing salaries by college type looks at colleges in the United States and classifies them by type of school. It also looked specifically at Starting Median Salary, Mid Career Median Salary, Percent change from Starting to Mid-Career Salary, Mid Career 10th Percentile Salary, Mid Career 25th Percentile Salary, Mid Career 75th Percentile Salary, and Mid Career 90th Percentile Salary for each school. The final data set looked at schools and salaries by region of the United States. It also looked specifically at Starting Median Salary, Mid Career Median Salary, Percent change from Starting to Mid-Career Salary, Mid Career 10th Percentile Salary, Mid Career 25th Percentile Salary, Mid Career 75th Percentile Salary, and Mid Career 90th Percentile Salary for each school and region. We looked into combining the three data sets, but found that looking at each individually would be more helpful than trying to combine all of the datasets. 
+
+### Data Issues
+
+  The potential issue with these datasets is that we can’t clearly see if the salary one makes from a certain degree varies between colleges, for such information is not clumped into one dataset. Also, we couldn’t find the sampling method used to create the datasets, so there may have been some flawed sample collecting present. Lastly, other factors such as race, gender, etc. weren’t taken into account in the data, so we cannot conclude that certain variables definitively lead to a clear salary outcome.
+
+### Data Appropriateness
+
+  The datasets we chose are appropriate to address the research questions posed because our research questions revolved around salaries depending on multiple variables surrounding the college one goes to. The dataset allows us to look at a broad range of data that are all closely related to each other, and thus working with these datasets can provide meaningful conclusions.
+
+### Summaries
+```{r}
+#create numeric summary for degree data
+summary(degree1$start_median)
+
+#create numeric summary for school type data
+summary(type.data1$m50)
+
+#create graphical summary for region data (scatterplot)
+graph1=ggplot(region.data1,aes(x=region,y=start_median,color=region))+geom_point()+
+labs(title="Region vs. Starting Median Salary",
+x="Region",y="Starting Median Salary")+theme(axis.text.x=element_text(angle=60),
+plot.title=element_text(hjust=0.5))+scale_y_continuous(breaks=seq(34000,75000,5000),
+limits=c(34000,75000))
+graph1
+
+#create graphical summary for degree data (bar graph)
+medianE = 58300
+medianScience = 42600
+mediansocialscience = 37900
+medianart = 35800
+medianbusiness = 46000
+median.total <- c(medianE,medianScience,mediansocialscience,medianart,medianbusiness)
+name= c("Engineering", "Science", "Social Science", "Art", "Business")
+dataframe.1<- data.frame(name, median.total)
+
+graph2=ggplot(dataframe.1,aes(x=name,y=median.total,fill=name))+
+geom_bar(stat="identity",color="white", width=0.5)+
+labs(title="Starting Median Salary vs. Major Type",
+x="Major Type", y="Starting Median Salary")+
+theme(axis.text.x = element_text(angle=45),plot.title=element_text(hjust=0.5))
+graph2
+```
+
+### Analysis of Summaries
+
+  The first numerical summary regarding the starting median salary for the degree dataset was employed to explore our first research question, and we found that minimum median salary was $34,000, the maximum was $74,300, and the median and mean were $40,850 and $44,310 respectively. So overall, it seems that among all the majors, most having a median starting salary of around $40,000 out of college. 
+  
+  For our second numerical summary, we observed information to help us understand our second research question better. We wanted to see what the mid career median salary percentile looked like in the school type data, and we observed that the minimum was $43,900, the maximum was $134,000, and the median and mean were $81,600 and $83,932 respectively. We can see here that our range is significantly larger depending on the type of school one went to and the salary they make mid-career. This indicates that type of school is a good predictor of future percentiles of salary accumulation.
+  
+  The first graph we made is a scatterplot that explored our third research question, and we wanted to see which school region produces the greatest starting median salary. Overall, it seems that Northeastern schools have slightly higher data points for median starting salaries than other regions, while Western appears to have the lowest data points, though it is close to Midwestern. Interestingly, both the Calfornia and Northeastern regions have similar outliers for an above average starting median salary. 
+  
+  Our second graph was a bar graph that explored our first research question, and we aimed to figure out which of the major categories produces the highest starting median salaries. We can see that Engineering majors produce the greatest starting median salary, followed by Business, Science, Social Science, and Art. Based on the assumptions we made before analyzing the data, we were correct in assuming that Engineering and Business would have higher starting median salaries due to the rigorous nature of their courses and the well-paying jobs that are present in this field.
+
+
+## Part 3: Hypothesis Testing
+
+### Research Question Explored with Testing
+
+  The research question that will be answered in this section is whether a specific type of school results in a higher starting median salary. We are specifically interested in engineering and liberal arts schools, so our test will be comparing if there is a difference between the mean of the median starting salary for both types of schools.
+  
+### Test Identification and Appropriateness
+
+  Since we are exploring the relationship between two independent variables in relation to the starting median salary, we opted to use a two-sample t-test. This can ensure that we are able to accurately explore the statistical significance of their relationship and difference of the starting median salary.
+
+### Test Characteristics Explanation
+
+  The characteristics of this test are that the data samples are independent and are normally distributed. 
+
+### Test Assumptions and Validity
+
+  The assumptions of this test are that the data come from normal distributions. This assumption has been met (in part 2, data visualizations). The bar graph for school types vs. starting median salary has the shape of a bell curve, indicating this it is normally distributed. Also, since we are working with two independent populations to identify a difference in median salaries, the assumptions needed have been met to perform a two-sample t-test.
+
+### Test hypotheses
+
+  The null hypothesis is that there is no difference between the starting salaries of engineering and liberal arts schools, and the alternative hypothesis is that engineering schools have a greater starting median salary.
+
+The statistical test hypotheses are as stated:
+Ho: mu1-mu2=0
+Ha: mu1-mu2>0
+	Mu1: the average starting median salary of engineering school graduates
+	Mu2: the average starting median salary of liberal arts school graduates
+
+### Test Results
+
+Code (ignore spacing):
+
+medSalary=as.numeric(school.data$start.median)
+
+t.test(medSalary ~ type,data=school.data,subset=type %in% c("Engineering","Liberal Arts"),mu=0,alternative="two.sided")
+
+medSal1= school.data $ start.median[school.data $ type=="Engineering"]
+medSalary1= as.numeric(medSal1)
+
+medSal2= school.data $ start.median[school.data $ type=="Liberal Arts"]
+medSalary2= as.numeric(medSal2)
+
+t.test(medSalary1,medSalary2,mu=0,alternative="two.sided")
+
+Results:
+P Value- 4.51e-07,
+Test statistic- 6.9375,
+95% Confidence Interval: 9359.13 to 17263.04
+
+### Test Conclusions and Generalizations
+
+  Since the p value is extremely small (4.14e-07) and this value is much less than the alpha value of 0.05, we can reject the null hypothesis that there is no significant difference between the average starting median salary between engineering and liberal arts schools. Our alternative hypothesis stated that the mean starting median salary of engineering schools would be higher than the mean starting median salary of liberal arts schools, which is supported by the hypothesis test. The mean of engineering starting median salaries is approximately $59,057.89, whereas the mean of liberal arts school graduates starting median salaries is about $45,746.81. The outcome of this test can be generalized beyond this data because the data shows that engineering schools have a higher starting median salary than liberal arts schools, which may impact where future students choose to attend college. 
+
+## References
+1. <https://www.nbcnews.com/news/education/tuition-fees-continues-rise-pandemic-inflation-woes-hit-colleges-rcna14292>
+2. <https://www.kaggle.com/datasets/wsj/college-salaries>
+3. <https://www.payscale.com/content/PayScale_Methodology.pdf>
