@@ -1,0 +1,185 @@
+---
+title: "Base Operations Crime Data"
+author: "Sarah Raza (sr6bf)"
+date: '2022-12-02'
+output: html_document
+---
+
+```{r, warning=FALSE,message=FALSE}
+library(dplyr)
+library(tidyverse)
+library(reprex)
+library(ggplot2)
+library(RColorBrewer)
+bcrime<-read.csv("/Users/sarahraza/Downloads/Boston_Crime_Data.csv")
+```
+Data cleaning
+```{r}
+bcrime = bcrime%>%select(-INCIDENT_NUMBER,-OFFENSE_CODE)
+bcrime = bcrime%>%mutate(across(starts_with("Location"),~gsub("\\,", "", .)))
+bcrime = bcrime%>%mutate(across(starts_with("Location"),~gsub("\\.", "", .)))
+bcrime = bcrime%>%mutate(across(starts_with("Location"),~gsub("\\(", "", .)))
+bcrime = bcrime%>%mutate(across(starts_with("Location"),~gsub("\\)", "", .)))
+bcrime = na.omit(bcrime)
+```
+Data cleaning
+```{r}
+bcrime2 = bcrime%>%mutate(HAD_SHOOTING=ifelse(SHOOTING>0,"Y","N"))%>%select(-SHOOTING)
+bcrime3 = bcrime2 %>% mutate(Crimes = OFFENSE_CODE_GROUP)
+bcrime3$Crimes =  gsub('Simple Assault', 'Assault',
+                  gsub('Aggravated Assault', 'Assault',
+                  gsub('Property Lost', 'Property',
+                  gsub('Aircraft','Vehicle',
+                  gsub('Arson','Property',
+                  gsub('Assembly or Gathering Violation','Property',
+                  gsub('Auto Theft','Vehicle',
+                  gsub('Auto Theft Recovery','Vehicle',
+                  gsub('Biological Threat','Other',
+                  gsub('Commercial Burglary','Theft',
+                  gsub('Criminal Harassment','Harassment',
+                  gsub('Disorderly Conduct','Harassment',
+                  gsub('Embezzlement','Theft',
+                  gsub('Confidence Games','Theft',
+                  gsub('Fire Related Reports','Property',
+                  gsub('Firearm Discovery','Weapon',
+                  gsub('Fraud','Theft',
+                  gsub('Police Theft Incidents','Theft',
+                  gsub('Prisoner Related Incidents','Other',
+                  gsub('Gambling','Theft',
+                  gsub('Harbor Related Incidents','Other',
+                  gsub('HOME INVASION','Theft',
+                  gsub('HUMAN TRAFFICKING','Trafficking',
+                  gsub('HUMAN TRAFFICKING - INVOLUNTARY SERVITUDE','Trafficking',
+                  gsub('INVESTIGATE PERSON','Other',
+                  gsub('Investigate Property','Property',
+                  gsub('Larceny','Theft',
+                  gsub('Larceny From Motor Vehicle','Theft',
+                  gsub('License Violation','Violation',
+                  gsub('Liquor Violation', 'Drug Violation',
+                  gsub('Medical Assistance','Other',
+                  gsub('Missing Person Located','Missing',
+                  gsub('Motor Vehicle Accident Response','Vehicle',
+                  gsub('Offenses Against Child / Family','Harassment',
+                  gsub('Other Burglary','Theft',
+                  gsub('Prison Related Incidents','Other',
+                  gsub('Property Lost','Property',
+                  gsub('Recovered Stolen Property','Property',
+                  gsub('Robbery','Theft',
+                  gsub('Evading Fare','Theft',
+                  gsub('Verbal Disputes','Harassment',
+                  gsub('Property Related Damage','Property',
+                  gsub('Residential Burglary','Theft',
+                  gsub('Search Warrants','Property',
+                  gsub('Towed','Vehicle',
+                  gsub('Assembly or Gathering Violations','Violation',
+                  gsub('Warrant Arrests','Other', bcrime3$Crimes
+                  )))))))))))))))))))))))))))))))))))))))))))))))
+bcrime3$Crimes = gsub('Ballistics','Weapon',
+                 gsub('Burglary - No Property Taken','Theft',
+                 gsub('Counterfeiting','Theft',
+                 gsub('Drug Violation','Drug Violation',
+                 gsub('Explosives','Weapon',
+                 gsub('Firearm Violation','Weapon',
+                 gsub('Weapons','Weapon',
+                 gsub('Weapon Possession','Weapon',
+                 gsub('Bomb Hoax','Weapon',
+                 gsub('Homicide','Murder',
+                 gsub('Investigate Person','Other',
+                 gsub('Landlord/Tenant Disputes','Property',
+                 gsub('Propertys','Property',
+                 gsub('License Plate Related Incidents','Vehicle',
+                 gsub('Manslaughter','Murder',
+                 gsub('Missing Person Reported','Missing',
+                 gsub('Operating Under the Influence','Drug Violation',
+                 gsub('Phone Call Complaints','Other',
+                 gsub('Property Found','Property',
+                 gsub('Prostitution','Trafficking',
+                 gsub('Restraining Order Violations','Violation',
+                 gsub('Violations','Violation',
+                 gsub('Service','Theft',
+                 gsub('Vandalism','Property', bcrime3$Crimes))))))))))))))))))))))))  
+```
+Three frequency tables
+```{r}
+table(bcrime3$UCR_PART) 
+
+table(bcrime3$Crimes)
+
+table(bcrime3$DAY_OF_WEEK)
+```
+Two summary measures
+```{r}
+summary(bcrime3$MONTH)
+
+summary(bcrime3$HOUR)
+```
+Maximum occurrences
+```{r}
+bcrime4=bcrime3 %>% filter(!Location=="000000000 000000000")
+
+names(which.max(table(bcrime4$Location)))
+
+names(which.max(table(bcrime4$REPORTING_AREA)))
+
+names(which.max(table(bcrime4$HOUR)))
+```
+Two-way table of number of UCR_PART crimes in districts
+```{r}
+bcrime5 <- table(bcrime4$UCR_PART, bcrime4$DISTRICT)
+t(bcrime5)
+```
+Bar graphs of categorical data
+```{r}
+ggplot(bcrime4, aes(x = Crimes))+geom_bar(fill="violet")+theme(axis.text.x = element_text(angle=90))+labs(title='Most Crimes to Occur')
+```
+```{r}
+ggplot(bcrime4, aes(x = DISTRICT))+geom_bar(fill="maroon")+theme(axis.text.x = element_text(angle=90))+labs(title='Districts With Most Crime')
+```
+```{r}
+ggplot(bcrime4, aes(x = YEAR))+geom_bar(fill="dark green")+theme(axis.text.x = element_text(angle=90))+labs(title='How Many Shootings Normally Occur by Year')
+```
+
+
+Table summary of average month crimes occur grouped by UCR_PART
+```{r}
+bcrime4%>%group_by(UCR_PART)%>%summarize(Month=mean(MONTH, na.rm=T))
+```
+Boxplot, facet-wrapped graph, gradient bar graph, and heat map
+```{r}
+ggplot(bcrime4,aes(x=HAD_SHOOTING, y=YEAR))+geom_boxplot(fill="lightslateblue")+labs(title='When Shootings Normally Occur by Year')
+```
+```{r}
+ggplot(bcrime4,aes(x=Crimes, fill=HAD_SHOOTING))+geom_bar(position="fill")+facet_wrap(~DAY_OF_WEEK)+theme(axis.text.x=element_text(angle=90))+ labs(title='What Day of Week Most Shootings Occur for a Certain Crime')
+```
+```{r}
+ggplot(bcrime4,aes(x=UCR_PART, y=HOUR))+geom_boxplot(fill=brewer.pal(5, "Set1"))+labs(title='What Hour Crimes of Various Severity are Most Commited')
+```
+```{r} 
+ggplot(data=bcrime4,aes(x=reorder(DISTRICT,YEAR),y=YEAR)) + 
+  geom_bar(stat ='identity',aes(fill=YEAR))+
+  coord_flip() + 
+  theme_grey() + 
+  scale_fill_gradient(name="YEAR")+
+  labs(title = 'Understanding Which Districts Had Most Crime Over Years',
+       y='Year',x='District')
+```
+```{r}
+ggplot(bcrime4,aes(x=UCR_PART,y=HAD_SHOOTING, fill=HOUR))+geom_tile(color="white")+scale_fill_distiller(palette = "Spectral",direction = 1)+theme(axis.text.x = element_text(angle=35))
+```
+
+
+Convert HAD_SHOOTING variable to numeric
+```{r}
+bcrime5 = bcrime4%>%mutate(HAS_SHOOTING=ifelse(HAD_SHOOTING>0,1,0))%>%select(-HAD_SHOOTING)
+```
+Multiple linear regression model
+```{r}
+Modeldata1=bcrime5%>%select(HAS_SHOOTING,HOUR,YEAR)
+model1=lm(HAS_SHOOTING~.,Modeldata1)
+summary(model1)
+```
+
+
+
+
+
