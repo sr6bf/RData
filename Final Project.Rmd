@@ -1,0 +1,205 @@
+---
+title: "Final Project"
+author: "Nadia Eisa (nwe4n)"
+date: "12/8/2021"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(RColorBrewer)
+marketing_campaign= read.delim("~/Downloads/marketing_campaign.csv", header=FALSE)
+```
+
+Data Removal Code
+```{r}
+market = marketing_campaign%>%select(-V1, -V10, -V11, -V12, -V13, -V14, -V15, -V16, -V18, -V19, -V20, -V21, -V22, -V23, -V24, -V25, -V26, -V27, -V28, -V29)
+```
+
+Renaming Columns
+```{r}
+market1=market%>%rename(Year_birth=V2, Education=V3, Marital_Status=V4, Income=V5, Kidhome=V6, TeenHome=V7, Dt_Customer=V8, Recency=V9, NumWebPurchases=V17)
+```
+
+Removing 1st row
+```{r}
+market2 = market1[-1,]
+```
+
+Changing columns to numeric
+```{r}
+market3 = market2%>%mutate(kid=as.numeric(Kidhome),teen=as.numeric(TeenHome))%>%select(-Kidhome, -TeenHome)
+```
+
+Combining kids and teens
+```{r}
+market4 = market3%>%mutate(Have_Kids = kid + teen)%>%select(-kid,-teen)
+```
+
+Changing kids to categorical
+```{r}
+market5=market4%>%mutate(Kids=ifelse(Have_Kids>0, "Yes", "No"))%>%select(-Have_Kids)
+```
+
+Changing the date of enrollment to month of enrollment
+```{r}
+MarketData=market5%>%mutate(Month=ifelse(grepl("-01-", Dt_Customer), "January", ifelse(grepl("-02-", Dt_Customer), "February", ifelse(grepl("-03-", Dt_Customer), "March", ifelse(grepl("-04-", Dt_Customer), "April", ifelse(grepl("-05-", Dt_Customer), "May", ifelse(grepl("-06-", Dt_Customer), "June", ifelse(grepl("-07-", Dt_Customer), "July", ifelse(grepl("-08-", Dt_Customer), "August", ifelse(grepl("-09-", Dt_Customer), "September", ifelse(grepl("-10-", Dt_Customer), "October", ifelse(grepl("-11-", Dt_Customer), "November", "December"))))))))))))%>%select(-Dt_Customer)
+```
+
+Revising Marital Status Answers
+```{r}
+MarketDat=MarketData%>%mutate(MaritalStatus=ifelse(grepl("Divorced", Marital_Status), "Divorced", ifelse(grepl("Married", Marital_Status), "Married", ifelse(grepl("Together", Marital_Status), "Dating", ifelse(grepl("Widow", Marital_Status), "Widow", "Single")))))%>%select(-Marital_Status)
+```
+
+Changing character variables to numeric
+```{r}
+Customer_Analysis= MarketDat%>%mutate(YearBirth=as.numeric(Year_birth), AnnualIncome=as.numeric(Income), Recent=as.numeric(Recency), WebPurchases=as.numeric(NumWebPurchases))%>%select(-Year_birth, -Income, -Recency, -NumWebPurchases)
+```
+
+Categorical summary measures
+```{r}
+table(Customer_Analysis$Education)
+
+table(Customer_Analysis$MaritalStatus)
+
+table(Customer_Analysis$Kids)
+
+table(Customer_Analysis$Month)
+```
+
+Numerical summary measures
+```{r}
+summary(Customer_Analysis$YearBirth)
+
+summary(Customer_Analysis$AnnualIncome)
+
+summary(Customer_Analysis$Recent)
+
+summary(Customer_Analysis$WebPurchases)
+```
+
+Summary of Numerical Variables by Groups
+```{r}
+Customer_Analysis%>%group_by(Kids)%>%summarize(AvgIncome=mean(AnnualIncome, na.rm=T))
+
+Customer_Analysis%>%group_by(MaritalStatus)%>%summarize(AvgRecent=mean(Recent, na.rm=T))
+```
+
+Making Months Appear in Order
+```{r}
+MarketMonth=Customer_Analysis%>%mutate(Months=factor(Month,levels=c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")))
+```
+
+
+Categorical graphs
+```{r}
+ggplot(MarketMonth, aes(x = Months))+geom_bar(fill="violet")+theme(axis.text.x = element_text(angle=35))
+
+ggplot(Customer_Analysis, aes(x=Education))+geom_bar(fill="light blue")
+
+ggplot(Customer_Analysis, aes(x=Kids))+geom_bar(fill="aquamarine")
+
+ggplot(Customer_Analysis, aes(x=MaritalStatus))+geom_bar(fill="pink")
+```
+
+Numerical Graphs
+```{r}
+ggplot(Customer_Analysis,aes(y=YearBirth))+geom_boxplot(fill="indianred2")+coord_flip()
+
+ggplot(Customer_Analysis,aes(y=Recent))+geom_boxplot(fill="darkseagreen2")+coord_flip()
+
+ggplot(Customer_Analysis,aes(y=AnnualIncome))+geom_boxplot(fill="cornsilk2")+coord_flip()
+
+ggplot(Customer_Analysis,aes(y=WebPurchases))+geom_boxplot(fill="tan3")+coord_flip()
+```
+
+Side by Side Boxplots
+Education and Annual Income
+```{r}
+ggplot(Customer_Analysis,aes(x=Education, y=AnnualIncome))+geom_boxplot(fill=brewer.pal(5, "Set1"))
+```
+
+Kids and Web Purchases
+```{r}
+ggplot(Customer_Analysis,aes(x=Kids, y=WebPurchases))+geom_boxplot(fill="lightslateblue")
+```
+
+Scatterplots:
+Annual Income and Web Purchases
+```{r}
+ggplot(Customer_Analysis, aes(x=AnnualIncome, y=WebPurchases))+geom_point(color="springgreen2", alpha=0.5)
+```
+
+Birth Year and Recent
+```{r}
+ggplot(Customer_Analysis,aes(x=YearBirth,y=Recent, color=YearBirth))+geom_point(alpha=0.5)
+```
+
+3 or More Variable Graphs:
+Facet-Wrap: Marital Status, Kids, Eductaion
+```{r}
+ggplot(Customer_Analysis,aes(x=MaritalStatus, fill=Kids))+geom_bar(position="fill")+facet_wrap(~Education)+theme(axis.text.x=element_text(angle=90))
+```
+
+Bubble Plot: Birth Year, Web Purchases, Kids, Annual Income
+```{r}
+ggplot(Customer_Analysis, aes(x=YearBirth, y=WebPurchases,size=AnnualIncome, color=Kids))+geom_point(alpha=0.5)
+```
+
+Special Graph:
+HeatMap
+```{r}
+ggplot(Customer_Analysis,aes(x=MaritalStatus,y=Kids, fill=WebPurchases))+geom_tile(color="white")+scale_fill_distiller(palette = "Spectral",direction = 1)+theme(axis.text.x = element_text(angle=35))
+```
+
+One-Sample Inference:
+Annual Income Mean of Customers
+```{r}
+t.test(Customer_Analysis$AnnualIncome,conf.level = 0.95)
+```
+
+Proportion of Customers who have Kids
+```{r}
+prop.test(1602,2240,conf.level=0.95)
+```
+
+Two-Sample Inference:
+No kids with a PhD or Kids with a PhD
+```{r}
+prop.test(c(134, 352), c(638,1602), conf.level = 0.95)
+```
+
+College Degree and Married or College Degree and Divorced
+```{r}
+prop.test(c(231, 431), c(232,864), conf.level = 0.95)
+```
+
+Multiple Regression Model:
+```{r}
+Modeldata=Customer_Analysis%>%select(YearBirth,AnnualIncome,Recent,WebPurchases)
+model=lm(AnnualIncome~.,Modeldata)
+summary(model)
+PredictAnnual_Income<-data.frame(YearBirth= 2001,Recent= 30,WebPurchases= 5 )
+predict(model,PredictAnnual_Income,interval="predict")
+```
+
+Logistic Regression Model:
+```{r}
+LogitData=Customer_Analysis%>%select(YearBirth, Recent, AnnualIncome,WebPurchases,Kids)%>%mutate(kid=ifelse(grepl("Yes", Kids), 1, 0))%>%select(-Kids)
+logit.model=glm(kid~.,data=LogitData,family="binomial")
+summary(logit.model)
+Prediction=data.frame(YearBirth=2002,Recent=43,AnnualIncome=30000,WebPurchases=3)
+predict(logit.model,Prediction,type="response")
+```
+
+
+
+
+
+
+
+
+
+
+
