@@ -1,0 +1,188 @@
+---
+title: "STAT 4120 HW 5"
+author: "Sarah Raza (sr6bf)"
+date: '2023-04-12'
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+library(dplyr)
+NFL <- read.delim("/Users/sarahraza/Downloads/nfl.txt")
+```
+
+a)
+Use the regsubsets() function from the leaps package to run all possible re-
+gressions. Set nbest=2. Identify the model (the predictors and the corresponding estimated coefficients) that is best in terms of
+i. Adjusted R2
+ii. Mallow’s Cp
+iii. BIC
+```{r}
+library(leaps)
+allreg = regsubsets(y~.,data=NFL,nbest = 2)
+summary(allreg)
+```
+```{r}
+coef(allreg, which.max(summary(allreg)$adjr2))
+```
+```{r}
+coef(allreg, which.min(summary(allreg)$cp))
+```
+```{r}
+coef(allreg, which.min(summary(allreg)$bic))
+```
+
+b)
+Run forward selection, starting with an intercept-only model. Report the predictors and the estimated coefficients of the model selected.
+```{r}
+regnull = lm(y~1, data = NFL)
+regfull = lm(y~.,data=NFL)
+step(regnull,scope=list(lower=regnull,upper=regfull),direction="forward")
+```
+The predictors are x2, x7, x8, and x9. The estimated cofficients are 0.003819, 0.216894, -0.004015, and -0.001635 respectively.
+
+c)
+Run backward elimination, starting with the model with all predictors. Report
+the predictors and the estimated coefficients of the model selected.
+```{r}
+regnull = lm(y~1, data = NFL)
+regfull = lm(y~.,data=NFL)
+step(regfull,scope=list(lower=regnull,upper=regfull),direction="backward")
+```
+The predictors are x2, x7, x8, and x9. The estimated coefficients are stated above in part b.
+
+d)
+Run stepwise regression, starting with an intercept-only model. Report the predictors and the estimated coefficients of the model selected.
+
+After going through parts 1a to 1d, you should have two models under consideration. For consistency, refer to these models as Model 1, which has x2, x7, x8, x9 as predictors, and Model 2, which has x2, x7, x8. 
+```{r}
+step(regnull, scope=list(lower=regnull, upper=regfull), direction="both")
+```
+Predictors are x2, x7, x8, and x9.
+
+e)
+```{r}
+PRESS = function(model){
+  i = residuals(model)/(1-lm.influence(model)$hat)
+  sum(i^2)
+}
+```
+
+f)
+Using the function you wrote in part 1e, calculate the PRESS statistic for Model 1 and Model 2 (use 4 decimal places)
+```{r}
+model1= lm(y~x2+x7+x8+x9, data = NFL)
+model2= lm(y~x2+x7+x8, data = NFL)
+PRESS(model1)
+PRESS(model2)
+```
+Press for model 1 is 87.65965 and press for model 2 is 87.46123
+
+g)
+Calculate the R2 Prediction for Model 1 and Model 2, and compare these values with their corresponding R2 (leave these values as decimals, using 4 decimal places. Do not convert to percent). What comments can you make about the likely predictive performance of these models?
+For the rest of these questions, consider working with Model 2, with x2, x7, x8 as predictors.
+```{r}
+pred_r_squared <- function(model) {
+  #' Use anova() to get the sum of squares for the linear model
+  lm.anova <- anova(model)
+  #' Calculate the total sum of squares
+  tss <- sum(lm.anova$'Sum Sq')
+  # Calculate the predictive R^2
+  pred.r.squared <- 1-PRESS(model)/(tss)
+  
+  return(pred.r.squared)
+}
+```
+```{r}
+pred_r_squared(model1)
+pred_r_squared(model2)
+```
+```{r}
+summary(model1)$r.squared
+summary(model2)$r.squared
+```
+The predicted r-squared for model 1 is 0.7318984 and 0.7325052 for model 2.
+The r-squared values are 0.8011882 for model 1 and 0.7863069 for model 2.
+The predictions were lower than the actual r-squared values, so it may be underestimating values.
+
+h)
+Using externally studentized residuals, do we have any outliers? What teams are these (row index)?
+```{r}
+res=model2$residuals
+standard.res = res/summary(model2)$sigma
+student.res = rstandard(model2)
+student.res[abs(student.res)>2]
+
+ext.student.res<-rstudent(model2)
+res.frame<-data.frame(res,standard.res,
+student.res,ext.student.res)
+```
+We highlight the 1st observation, as its externally studentized residual is a lot larger than studentized residual. So this observation is likely to have high leverage and likely be influential.
+
+```{r}
+res.frame[1,]
+```
+```{r}
+par(mfrow=c(1,3))
+plot(model2$fitted.values,standard.res,
+main="Standardized Residuals",
+ylim=c(-4.5,4.5))
+plot(model2$fitted.values,student.res,
+main="Studentized Residuals",
+ylim=c(-4.5,4.5))
+plot(model2$fitted.values,ext.student.res,
+main="Externally Studentized Residuals",
+ylim=c(-4.5,4.5))
+```
+
+
+i)
+Do we have any high leverage data points for this multiple linear regression? What teams are these (row index)?
+
+```{r}
+lev<-lm.influence(model2)$hat
+ext.student<-rstudent(model2)
+n=nrow(NFL)
+p=4
+
+lev[lev>2*p/n] #identify high leverage points
+```
+Observations 18 and 27 have high leverage. 
+
+```{r}
+crit<-qt(1-0.05/(2*n), n-p-1)
+
+ext.student[abs(ext.student)>crit]
+```
+None of the observations are considered outliers, which is not surprising given the scatterplots.
+
+j)
+Use DFFITSi, DFBETASj,i, and Cook’s distance to check for influential observations. What teams are influential (row index)?
+
+```{r}
+DFFITS<-dffits(model2)
+DFFITS[abs(DFFITS)>2*sqrt(p/n)]
+```
+We have no influential observations based on DFFITS.
+
+```{r}
+DFBETAS=dfbetas(model2)
+abs(DFBETAS)>2/sqrt(n)
+```
+We observed the observation 10 is influential for the x8 variable and observation 21 is influential for the x7 variable. It can be useful to look at the actual values of these DFBETAS of these states.
+
+```{r}
+DFBETAS["10",]
+DFBETAS["21",]
+```
+
+```{r}
+COOKS<-cooks.distance(model2)
+COOKS[COOKS>qf(0.5,p,n-p)]
+```
+No observations were flagged. We can verify this with the Cook's plot.
+```{r}
+par(mfrow=c(2,2))
+plot(model2)
+```
+
